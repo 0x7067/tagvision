@@ -84,7 +84,7 @@ def main():
     result = processRequest(json, data, headers, params)
 
     new  = str(result['description']['captions'][0]['text'])
-    os.rename(old, str(dir_name + new + extension))
+    os.rename(old, join(dir_name + new + extension))
 
 if __name__ == '__main__':
     main()
