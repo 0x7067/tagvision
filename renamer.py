@@ -60,9 +60,14 @@ def processRequest(json, data, headers, params):
     return result
 
 def main():
+    allowed_extensions = ['.jpeg', '.jpg', '.png']
     script, old = argv
     filename, extension = splitext(old)
     dir_name = dirname(old)
+    if extension.lower() not in allowed_extensions:
+        print "Please use a valid image file as argument"
+        print "You can use .jpg, .jpeg or .png"
+        exit()
     if dir_name != '':
         dir_name = join(dir_name + '/')
 
