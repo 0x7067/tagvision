@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 
 import os
-import time 
-import json
+import time
 import requests
-import cv2
-import operator
-import numpy as np
 from sys import argv
-from os.path import join
+from os.path import join, splitext, dirname
 
 # Variables for API
 _url = 'https://api.projectoxford.ai/vision/v1/analyses'
@@ -33,52 +29,62 @@ def processRequest(json, data, headers, params):
 
         response = requests.request('post', _url, json = json, data = data, headers = headers, params = params)
 
-        if response.status_code == 429: 
+        if response.status_code == 429:
 
             print("Message: %s" % ( response.json()['error']['message']))
 
-            if retries <= _maxNumRetries: 
-                time.sleep(1) 
+            if retries <= _maxNumRetries:
+                time.sleep(1)
                 retries += 1
                 continue
-            else: 
+            else:
                 print('Error: failed after retrying!')
                 break
 
         elif response.status_code == 200 or response.status_code == 201:
 
-            if 'content-length' in response.headers and int(response.headers['content-length']) == 0: 
-                result = None 
-            elif 'content-type' in response.headers and isinstance(response.headers['content-type'], str): 
-                if 'application/json' in response.headers['content-type'].lower(): 
-                    result = response.json() if response.content else None 
-                elif 'image' in response.headers['content-type'].lower(): 
+            if 'content-length' in response.headers and int(response.headers['content-length']) == 0:
+                result = None
+            elif 'content-type' in response.headers and isinstance(response.headers['content-type'], str):
+                if 'application/json' in response.headers['content-type'].lower():
+                    result = response.json() if response.content else None
+                elif 'image' in response.headers['content-type'].lower():
                     result = response.content
         else:
             print("Error code: %d" % (response.status_code))
-            print("Message: %s" % (response.json()['error']['message']))
+            print("Message: %s" % (response.json()['message']))
+            exit()
 
         break
-        
+
     return result
 
 def main():
-	script, old = argv
-	with open(old, 'rb') as f:
-		data = f.read()
-		# Computer Vision parameters
-	params = {'visualFeatures' : 'Description'} 
+    script, old = argv
+    filename, extension = splitext(old)
+    dir_name = dirname(old)
+    if dir_name != '':
+        dir_name = join(dir_name + '/')
 
-	headers = dict()
-	headers['Ocp-Apim-Subscription-Key'] = _key
-	headers['Content-Type'] = 'application/octet-stream'
+    try:
+        with open(old, 'rb') as f:
+            data = f.read()
+    except FileNotFoundError:
+        print('Error: file not found!')
+        exit()
+    # Computer Vision parameters
+    params = {'visualFeatures' : 'Description'}
 
-	json = None
+    headers = dict()
+    headers['Ocp-Apim-Subscription-Key'] = _key
+    headers['Content-Type'] = 'application/octet-stream'
 
-	result = processRequest(json, data, headers, params)
+    json = None
 
-	new  = str(result['description']['captions'][0]['text'])
-	os.rename(old, join(new + '.jpg'))
+    result = processRequest(json, data, headers, params)
+
+    new  = str(result['description']['captions'][0]['text'])
+    os.rename(old, join(dir_name + new + extension))
 
 if __name__ == '__main__':
     main()
